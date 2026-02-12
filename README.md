@@ -5,6 +5,3 @@ The script:
   - Links each child to its parent
   - Updates `processed.json` to avoid duplicates
 
-## Requirements
-- Token with `api` scope (p-support repo) 
-
