@@ -1,14 +1,22 @@
 import os
 import requests
 
-GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
-PROJECT_ID = 59536281
-BASE_API = f"https://gitlab.com/api/v4/projects/{PROJECT_ID}"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")
+
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN is not set")
+
+if not GITHUB_REPOSITORY:
+    raise RuntimeError("GITHUB_REPOSITORY is not set")
+
+BASE_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}"
 
 def _headers():
-    if not GITLAB_TOKEN:
-        raise RuntimeError("GITLAB_TOKEN is not set")
-    return {"PRIVATE-TOKEN": GITLAB_TOKEN}
+    return {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json"
+    }
 
 def get(path, params=None):
     url = f"{BASE_API}{path}"
@@ -18,6 +26,6 @@ def get(path, params=None):
 
 def post(path, data=None):
     url = f"{BASE_API}{path}"
-    r = requests.post(url, headers=_headers(), data=data)
+    r = requests.post(url, headers=_headers(), json=data)
     r.raise_for_status()
     return r.json()
