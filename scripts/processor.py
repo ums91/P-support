@@ -2,31 +2,70 @@ from datetime import datetime
 from .api import get, post
 from .utils import parse_iso_datetime, extract_product_name
 
-def child_issue_exists(parent_iid, title):
-    for l in get(f"/issues/{parent_iid}/links"):
-        if l.get("title")==title: return True
+
+def child_issue_exists(parent_number, title):
+    """
+    Checks whether a child issue already exists for this parent
+    by scanning open issues and validating Parent reference in body.
+    """
+    issues = get("/issues", params={
+        "state": "open",
+        "per_page": 100
+    })
+
+    for issue in issues:
+        if issue["title"] == title:
+            body = issue.get("body", "")
+            if f"Parent: #{parent_number}" in body:
+                return True
     return False
 
+
 def process_issue(issue, config):
-    out=[]
-    title=issue["title"]
-    iid=issue["iid"]
-    created=parse_iso_datetime(issue["created_at"])
-    cutoff=datetime.fromisoformat(config["cutoff_date"].replace("Z","+00:00"))
-    if created<cutoff: return out
+    out = []
 
-    product=extract_product_name(title)
-    labels=[l["title"] for l in issue["labels"]]
-    bu=next((l for l in labels if l.startswith("BU::")), None)
+    title = issue["title"]
+    number = issue["number"]
+    created = parse_iso_datetime(issue["created_at"])
 
-    base=list(config["default_labels"])
-    if bu: base.append(bu)
+    cutoff = datetime.fromisoformat(
+        config["cutoff_date"].replace("Z", "+00:00")
+    )
 
-    for name, sec in config["tasks"]:
-        ctitle=f"[{name}] {product}"
-        if child_issue_exists(iid, ctitle): continue
-        data={"title":ctitle,"description":"","labels":",".join(base+[sec])}
-        child=post("/issues", data)
-        post(f"/issues/{iid}/links", {"target_issue_iid": child["iid"]})
-        out.append((ctitle, child["iid"]))
+    if created < cutoff:
+        return out
+
+    product = extract_product_name(title)
+
+    labels = issue.get("labels", [])
+    bu = next(
+        (l["name"] for l in labels if l["name"].startswith("BU::")),
+        None
+    )
+
+    base_labels = list(config["default_labels"])
+    if bu:
+        base_labels.append(bu)
+
+    for task_name, secure_label in config["tasks"]:
+        child_title = f"[{task_name}] {product}"
+
+        if child_issue_exists(number, child_title):
+            continue
+
+        body = (
+            f"Parent: #{number}\n\n"
+            f"Auto-generated task for **{product}**.\n"
+        )
+
+        data = {
+            "title": child_title,
+            "body": body,
+            "labels": base_labels + [secure_label]
+        }
+
+        child = post("/issues", data)
+
+        out.append((child_title, child["number"]))
+
     return out
