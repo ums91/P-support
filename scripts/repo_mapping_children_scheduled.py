@@ -1,5 +1,6 @@
 """
-Main runner for scheduled GitHub Actions workflow.
+Main runner for scheduled or manual GitHub Actions workflow.
+Detects parent issues by title prefix instead of label.
 """
 
 import os
@@ -22,6 +23,8 @@ CONFIG_PATH = os.path.join(
     "settings.json"
 )
 
+PARENT_PREFIX = "[Repo Mapping Update]"
+
 
 def load_config():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -34,24 +37,34 @@ def main():
 
     print(f"Loaded {len(processed)} processed issues")
 
+    # Fetch all open issues (no label filtering)
     issues = get("/issues", params={
-        "labels": "Repo Mapping Update",
         "state": "open",
         "per_page": 100
     })
 
+    # Filter by title prefix
+    parent_issues = [
+        i for i in issues
+        if i["title"].startswith(PARENT_PREFIX)
+    ]
+
+    print(f"Found {len(parent_issues)} parent issues")
+
     new_count = 0
 
-    for issue in issues:
+    for issue in parent_issues:
         number = int(issue["number"])
 
         if number in processed:
             continue
 
+        print(f"Processing parent issue #{number}")
+
         results = process_issue(issue, config)
 
         if results:
-            print(f"Processed #{number}, created {len(results)} child tasks.")
+            print(f"Created {len(results)} child tasks for #{number}")
         else:
             print(f"No action required for #{number}")
 
