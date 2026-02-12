@@ -5,8 +5,8 @@ from .utils import parse_iso_datetime, extract_product_name
 
 def child_issue_exists(parent_number, title):
     """
-    Checks whether a child issue already exists for this parent
-    by scanning open issues and validating Parent reference in body.
+    Prevent duplicate child creation by checking open issues
+    with matching title and parent reference.
     """
     issues = get("/issues", params={
         "state": "open",
@@ -43,9 +43,16 @@ def process_issue(issue, config):
         None
     )
 
+    # Base labels from config
     base_labels = list(config["default_labels"])
+
+    # Add BU if present
     if bu:
         base_labels.append(bu)
+
+    # Always enforce filter::ignore
+    if "filter::ignore" not in base_labels:
+        base_labels.append("filter::ignore")
 
     for task_name, secure_label in config["tasks"]:
         child_title = f"[{task_name}] {product}"
