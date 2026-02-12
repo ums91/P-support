@@ -1,5 +1,5 @@
 from datetime import datetime
-from .api import get, post, patch
+from .api import get, post
 from .utils import parse_iso_datetime, extract_product_name
 
 
@@ -14,9 +14,8 @@ def ensure_parent_labels(issue, config):
     updated_labels = list(set(current_labels + required_labels))
 
     if set(updated_labels) != set(current_labels):
-        patch(f"/issues/{issue['number']}", {
-            "labels": updated_labels
-        })
+        # GitHub endpoint to replace labels
+        post(f"/issues/{issue['number']}/labels", updated_labels)
 
 
 def child_issue_exists(parent_number, title):
@@ -47,7 +46,7 @@ def process_issue(issue, config):
     if created < cutoff:
         return out
 
-    # ✅ Parent enforcement now config-driven
+    # Enforce parent labels (no patch needed)
     ensure_parent_labels(issue, config)
 
     product = extract_product_name(title)
@@ -57,8 +56,6 @@ def process_issue(issue, config):
         (l["name"] for l in labels if l["name"].startswith("BU::")),
         None
     )
-
-    # ---- CHILD LOGIC REMAINS EXACTLY AS BEFORE ----
 
     base_labels = list(config["default_labels"])
 
