@@ -6,5 +6,5 @@ The script:
   - Updates `processed.json` to avoid duplicates
 
 ## Requirements
-- Token with `api` scope (project support repo) 
+- Token with `api` scope (p-support repo) 
 
