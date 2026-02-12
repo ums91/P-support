@@ -12,11 +12,13 @@ if not GITHUB_REPOSITORY:
 
 BASE_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}"
 
+
 def _headers():
     return {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json"
     }
+
 
 def get(path, params=None):
     url = f"{BASE_API}{path}"
@@ -24,8 +26,16 @@ def get(path, params=None):
     r.raise_for_status()
     return r.json()
 
+
 def post(path, data=None):
     url = f"{BASE_API}{path}"
     r = requests.post(url, headers=_headers(), json=data)
+    r.raise_for_status()
+    return r.json()
+
+
+def patch(path, data=None):
+    url = f"{BASE_API}{path}"
+    r = requests.patch(url, headers=_headers(), json=data)
     r.raise_for_status()
     return r.json()
