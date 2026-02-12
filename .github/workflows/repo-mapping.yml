@@ -1,0 +1,39 @@
+name: Repo Mapping Children Generator
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # Every 6 hours
+  workflow_dispatch:        # Manual trigger button
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run repo mapping script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/repo_mapping_children_scheduled.py
+
+      - name: Commit updated processed.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add processed.json
+          git commit -m "Update processed.json [skip ci]" || echo "No changes"
+          git push
